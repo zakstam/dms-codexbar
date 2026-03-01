@@ -4,6 +4,10 @@ A [DMS (Dank Material Shell)](https://github.com/DankMaterialShell/dms) plugin f
 
 ![DMS Plugin](https://img.shields.io/badge/DMS-Plugin-blue) ![Quickshell](https://img.shields.io/badge/Quickshell-0.2+-green)
 
+## Screenshot
+
+![CodexBar screenshot](./screenshot.png)
+
 ## Features
 
 - Bar pill showing highest-usage provider with color-coded percentage (green/yellow/red)
