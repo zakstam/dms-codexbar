@@ -1,0 +1,12 @@
+{
+  "id": "codexBar",
+  "name": "CodexBar",
+  "description": "Monitor AI provider usage quotas",
+  "version": "1.0.0",
+  "author": "zak",
+  "icon": "monitoring",
+  "type": "widget",
+  "component": "./CodexBarWidget.qml",
+  "settings": "./CodexBarSettings.qml",
+  "permissions": ["process", "settings_read", "settings_write"]
+}
