@@ -6,6 +6,7 @@
   "author": "zak",
   "icon": "monitoring",
   "type": "widget",
+  "capabilities": ["dankbar-widget", "process"],
   "component": "./CodexBarWidget.qml",
   "settings": "./CodexBarSettings.qml",
   "permissions": ["process", "settings_read", "settings_write"]

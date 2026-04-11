@@ -85,9 +85,9 @@ All settings are available in DMS Settings > Plugins > CodexBar:
 
 ### Source modes
 
-- **oauth** (recommended): Uses Claude/Codex OAuth tokens. Works reliably for all providers on Linux.
-- **cli**: Uses PTY probe to read usage from CLI tools directly. May timeout for Claude on newer versions.
-- **api**: Fetches usage via API tokens. Requires API key configuration in CodexBar.
+- **oauth** (recommended): Uses signed-in provider tokens.
+- **cli**: Uses PTY probe to read usage from CLI tools directly. May timeout on some providers.
+- **api**: Fetches usage via API tokens. Requires API key configuration in CodexBar; a ChatGPT Plus subscription is not enough by itself.
 
 ## How it works
 
