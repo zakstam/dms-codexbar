@@ -2,7 +2,7 @@
   "id": "codexBar",
   "name": "CodexBar",
   "description": "Monitor AI provider usage quotas",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "author": "zak",
   "icon": "monitoring",
   "type": "widget",

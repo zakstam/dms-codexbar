@@ -21,6 +21,9 @@ PluginComponent {
     property bool binaryReady: false
     property string resolvedBinaryPath: ""
     property int fetchTimeoutMs: 20000
+    property bool usageDidTimeout: false
+    property int usageRequestId: 0
+    property int timedOutRequestId: -1
 
     property int refreshIntervalMs: {
         const val = pluginData.refreshInterval;
@@ -225,13 +228,7 @@ PluginComponent {
 
     Process {
         id: procDetect
-        command: [
-            "sh",
-            "-c",
-            "candidate=\"$1\"; if [ -n \"$candidate\" ] && [ -f \"$candidate\" ] && [ -x \"$candidate\" ]; then printf '%s\\n' \"$candidate\"; exit 0; fi; command -v codexbar 2>/dev/null || (test -x \"$HOME/.local/bin/codexbar\" && echo \"$HOME/.local/bin/codexbar\") || (test -x /usr/local/bin/codexbar && echo /usr/local/bin/codexbar) || true",
-            "sh",
-            root.codexbarPath
-        ]
+        command: ["sh", "-c", "candidate=\"$1\"; if [ -n \"$candidate\" ] && [ -f \"$candidate\" ] && [ -x \"$candidate\" ]; then printf '%s\\n' \"$candidate\"; exit 0; fi; command -v codexbar 2>/dev/null || (test -x \"$HOME/.local/bin/codexbar\" && echo \"$HOME/.local/bin/codexbar\") || (test -x /usr/local/bin/codexbar && echo /usr/local/bin/codexbar) || true", "sh", root.codexbarPath]
         stdout: SplitParser {
             onRead: line => {
                 const trimmed = line.trim();
@@ -247,9 +244,7 @@ PluginComponent {
             } else {
                 root.providers = [];
                 root.hasError = true;
-                root.errorMessage = root.codexbarPath.length > 0
-                    ? "Configured codexbar path is invalid. Point to the executable file."
-                    : "codexbar not found. Install it or set its executable path in settings.";
+                root.errorMessage = root.codexbarPath.length > 0 ? "Configured codexbar path is invalid. Point to the executable file." : "codexbar not found. Install it or set its executable path in settings.";
             }
         }
     }
@@ -281,8 +276,17 @@ PluginComponent {
             }
         }
         onExited: code => {
+            const exitedRequestId = root.usageRequestId;
             usageTimeout.stop();
             root.isLoading = false;
+
+            if (root.usageDidTimeout && root.timedOutRequestId === exitedRequestId) {
+                root.usageDidTimeout = false;
+                root.timedOutRequestId = -1;
+                root.rawJsonBuffer = "";
+                root.rawStderrBuffer = "";
+                return;
+            }
 
             if (code === 0 && root.rawJsonBuffer.length > 0) {
                 try {
@@ -301,9 +305,7 @@ PluginComponent {
                     root.lastUpdated = Qt.formatDateTime(new Date(), "hh:mm:ss");
                 } catch (error) {
                     root.hasError = true;
-                    root.errorMessage = root.rawStderrBuffer.length > 0
-                        ? root.rawStderrBuffer
-                        : "Failed to parse CodexBar output.";
+                    root.errorMessage = root.rawStderrBuffer.length > 0 ? root.rawStderrBuffer : "Failed to parse CodexBar output.";
                 }
             } else if (code !== 0) {
                 root.hasError = true;
@@ -316,13 +318,15 @@ PluginComponent {
     }
 
     function refresh() {
-        if (!binaryReady || procUsage.running) {
+        if (!binaryReady || procUsage.running || usageDidTimeout) {
             return;
         }
         hasError = false;
         isLoading = true;
         rawJsonBuffer = "";
         rawStderrBuffer = "";
+        usageRequestId += 1;
+        timedOutRequestId = -1;
         procUsage.running = true;
         usageTimeout.restart();
     }
@@ -333,6 +337,8 @@ PluginComponent {
         repeat: false
         onTriggered: {
             if (procUsage.running) {
+                root.timedOutRequestId = root.usageRequestId;
+                root.usageDidTimeout = true;
                 procUsage.running = false;
                 root.isLoading = false;
                 root.hasError = true;
@@ -386,15 +392,21 @@ PluginComponent {
         clip: true
 
         Behavior on color {
-            ColorAnimation { duration: 140 }
+            ColorAnimation {
+                duration: 140
+            }
         }
 
         Behavior on border.color {
-            ColorAnimation { duration: 140 }
+            ColorAnimation {
+                duration: 140
+            }
         }
 
         Behavior on scale {
-            NumberAnimation { duration: 140 }
+            NumberAnimation {
+                duration: 140
+            }
         }
 
         RowLayout {
@@ -410,9 +422,7 @@ PluginComponent {
                 width: compact ? 24 : 28
                 height: compact ? 24 : 28
                 radius: width / 2
-                color: buttonRoot.prominent
-                    ? Theme.withAlpha(Theme.primary, 0.18)
-                    : Theme.withAlpha(Theme.surfaceText, 0.08)
+                color: buttonRoot.prominent ? Theme.withAlpha(Theme.primary, 0.18) : Theme.withAlpha(Theme.surfaceText, 0.08)
 
                 DankIcon {
                     anchors.centerIn: parent
@@ -633,9 +643,7 @@ PluginComponent {
             id: popout
 
             headerText: "Codex Usage"
-            detailsText: root.lastUpdated.length > 0
-                ? `Updated ${root.lastUpdated}`
-                : "Live Codex usage monitor"
+            detailsText: root.lastUpdated.length > 0 ? `Updated ${root.lastUpdated}` : "Live Codex usage monitor"
             showCloseButton: true
 
             headerActions: Component {
@@ -646,9 +654,7 @@ PluginComponent {
                         width: 28
                         height: 28
                         radius: 14
-                        color: refreshArea.containsMouse
-                            ? Theme.surfaceContainerHighest
-                            : "transparent"
+                        color: refreshArea.containsMouse ? Theme.surfaceContainerHighest : "transparent"
 
                         DankIcon {
                             anchors.centerIn: parent
@@ -750,15 +756,9 @@ PluginComponent {
                                         implicitWidth: statusText.implicitWidth + Theme.spacingM * 2
                                         height: 28
                                         radius: 14
-                                        color: Theme.withAlpha(
-                                            root.hasError ? Theme.error : root.heroAccent,
-                                            0.16
-                                        )
+                                        color: Theme.withAlpha(root.hasError ? Theme.error : root.heroAccent, 0.16)
                                         border.width: 1
-                                        border.color: Theme.withAlpha(
-                                            root.hasError ? Theme.error : root.heroAccent,
-                                            0.3
-                                        )
+                                        border.color: Theme.withAlpha(root.hasError ? Theme.error : root.heroAccent, 0.3)
 
                                         StyledText {
                                             id: statusText
@@ -1066,9 +1066,7 @@ PluginComponent {
                                 MetricTile {
                                     Layout.fillWidth: true
                                     label: "Credits"
-                                    value: root.providerData && root.providerData.credits
-                                        ? String(root.providerData.credits.remaining ?? "—")
-                                        : "—"
+                                    value: root.providerData && root.providerData.credits ? String(root.providerData.credits.remaining ?? "—") : "—"
                                     accentColor: root.heroAccent
                                 }
                             }
