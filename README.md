@@ -1,6 +1,6 @@
 # dms-codexbar
 
-A [DMS (Dank Material Shell)](https://github.com/DankMaterialShell/dms) plugin for monitoring AI provider usage quotas. Wraps the [CodexBar CLI](https://github.com/steipete/CodexBar) to display Claude, Codex, Gemini, Copilot, and other AI usage directly in your DankBar.
+A [DMS (Dank Material Shell)](https://github.com/DankMaterialShell/dms) plugin for monitoring **Codex** usage quotas. Wraps the [CodexBar CLI](https://github.com/steipete/CodexBar) to display Codex usage directly in your DankBar.
 
 ![DMS Plugin](https://img.shields.io/badge/DMS-Plugin-blue) ![Quickshell](https://img.shields.io/badge/Quickshell-0.2+-green)
 
@@ -10,9 +10,9 @@ A [DMS (Dank Material Shell)](https://github.com/DankMaterialShell/dms) plugin f
 
 ## Features
 
-- Bar pill showing highest-usage provider with color-coded percentage (green/yellow/red)
-- Click-to-expand popout with all providers
-- Per-provider session, weekly, and tertiary usage bars with animated fills
+- Bar pill showing Codex usage with color-coded percentage (green/yellow/red)
+- Click-to-expand popout with Codex usage details
+- Session, weekly, and tertiary usage bars with animated fills
 - Reset countdown timers
 - Credits display
 - Configurable refresh interval, binary path, and source mode
@@ -39,7 +39,7 @@ install -m 0755 CodexBarCLI ~/.local/bin/codexbar
 Verify it works:
 
 ```bash
-codexbar usage --format json --provider both --source oauth
+codexbar usage --format json --provider codex --source oauth
 ```
 
 ### 2. Install the plugin
@@ -77,24 +77,24 @@ ln -s "$(pwd)" ~/.config/DankMaterialShell/plugins/CodexBar
 
 All settings are available in DMS Settings > Plugins > CodexBar:
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Refresh Interval | 2 minutes | How often to poll the CLI (1m / 2m / 5m / 15m / 30m) |
-| Binary Path | *(auto-detect)* | Path to `codexbar` executable |
-| Source Mode | `oauth` | Data source: `oauth` (recommended), `cli`, or `api` |
+| Setting          | Default         | Description                                          |
+| ---------------- | --------------- | ---------------------------------------------------- |
+| Refresh Interval | 2 minutes       | How often to poll the CLI (1m / 2m / 5m / 15m / 30m) |
+| Binary Path      | *(auto-detect)* | Path to `codexbar` executable                        |
+| Source Mode      | `oauth`         | Data source: `oauth` (recommended), `cli`, or `api`  |
 
 ### Source modes
 
-- **oauth** (recommended): Uses Claude/Codex OAuth tokens. Works reliably for all providers on Linux.
-- **cli**: Uses PTY probe to read usage from CLI tools directly. May timeout for Claude on newer versions.
-- **api**: Fetches usage via API tokens. Requires API key configuration in CodexBar.
+- **oauth** (recommended): Uses your signed-in Codex auth/session.
+- **cli**: Uses PTY probe to read Codex usage from CLI tooling directly.
+- **api**: Fetches Codex usage via API token configuration in CodexBar.
 
 ## How it works
 
-The plugin runs `codexbar usage --format json --provider both --source <mode>` at the configured interval, parses the JSON output, and displays:
+The plugin runs `codexbar usage --format json --provider codex --source <mode>` at the configured interval, parses the JSON output, and displays:
 
-- **Bar pill**: Highest-usage provider name + session percentage, color-coded by threshold
-- **Popout**: All providers with session/weekly/tertiary usage bars, reset countdowns, login method, credits, and account info
+- **Bar pill**: `Codex` label + session percentage, color-coded by threshold
+- **Popout**: Codex session/weekly/tertiary usage bars, reset countdowns, login method, credits, and account info
 
 ## License
 

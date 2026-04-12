@@ -7,43 +7,79 @@ PluginSettings {
     id: root
     pluginId: "codexBar"
 
-    StyledText {
+    StyledRect {
         width: parent.width
-        text: "CodexBar"
-        font.pixelSize: Theme.fontSizeLarge
-        font.weight: Font.Bold
-        color: Theme.surfaceText
+        radius: Theme.cornerRadius + 4
+        color: Theme.surfaceContainerHigh
+        border.width: 1
+        border.color: Theme.withAlpha(Theme.primary, 0.2)
+        implicitHeight: heroColumn.implicitHeight + Theme.spacingL * 2
+        clip: true
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Theme.withAlpha(Theme.primary, 0.16) }
+                GradientStop { position: 0.56; color: Theme.withAlpha(Theme.surfaceContainerHighest, 0.08) }
+                GradientStop { position: 1.0; color: Theme.withAlpha(Theme.surfaceContainer, 0.02) }
+            }
+        }
+
+        Rectangle {
+            width: 160
+            height: 160
+            radius: 80
+            x: parent.width - width * 0.72
+            y: -height * 0.35
+            color: Theme.withAlpha(Theme.primary, 0.08)
+        }
+
+        Column {
+            id: heroColumn
+            anchors.fill: parent
+            anchors.margins: Theme.spacingL
+            spacing: Theme.spacingS
+
+            StyledText {
+                width: parent.width
+                text: "Premium usage telemetry"
+                color: Theme.surfaceVariantText
+                font.pixelSize: Theme.fontSizeSmall - 1
+                font.weight: Font.DemiBold
+            }
+
+            StyledText {
+                width: parent.width
+                text: "CodexBar Settings"
+                font.pixelSize: Theme.fontSizeLarge
+                font.weight: Font.Bold
+                color: Theme.surfaceText
+                wrapMode: Text.WordWrap
+            }
+
+            StyledText {
+                width: parent.width
+                text: "Configure how CodexBar is executed, how often telemetry refreshes, and which source mode powers your DankBar widget."
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.surfaceVariantText
+                wrapMode: Text.WordWrap
+            }
+        }
     }
 
     StyledText {
         width: parent.width
-        text: "Monitor AI provider usage quotas. Uses the CodexBar CLI to fetch session and weekly rate windows for Claude, Codex, Gemini, Copilot, and other providers."
+        text: "Runtime"
         font.pixelSize: Theme.fontSizeSmall
+        font.weight: Font.DemiBold
         color: Theme.surfaceVariantText
-        wrapMode: Text.WordWrap
-    }
-
-    Rectangle {
-        width: parent.width
-        height: 1
-        color: Theme.outline
-        opacity: 0.3
-    }
-
-    // --- Refresh Interval ---
-
-    StyledText {
-        width: parent.width
-        text: "Refresh Interval"
-        font.pixelSize: Theme.fontSizeMedium
-        font.weight: Font.Medium
-        color: Theme.surfaceText
     }
 
     DankDropdown {
         id: refreshDropdown
         text: "Refresh Interval"
-        description: "How often to fetch usage data from the CLI"
+        description: "How often usage telemetry is fetched from CodexBar."
         currentValue: root.loadValue("refreshInterval", "120000")
         options: [
             "60000",
@@ -54,7 +90,7 @@ PluginSettings {
         ]
         dropdownWidth: 180
         onValueChanged: function(value) {
-            root.saveValue("refreshInterval", value)
+            root.saveValue("refreshInterval", value);
         }
     }
 
@@ -62,13 +98,13 @@ PluginSettings {
         width: parent.width
         leftPadding: Theme.spacingM
         text: {
-            var v = refreshDropdown.currentValue
-            if (v === "60000") return "Refreshes every 1 minute"
-            if (v === "120000") return "Refreshes every 2 minutes"
-            if (v === "300000") return "Refreshes every 5 minutes"
-            if (v === "900000") return "Refreshes every 15 minutes"
-            if (v === "1800000") return "Refreshes every 30 minutes"
-            return ""
+            const value = refreshDropdown.currentValue;
+            if (value === "60000") return "Refreshes every 1 minute";
+            if (value === "120000") return "Refreshes every 2 minutes";
+            if (value === "300000") return "Refreshes every 5 minutes";
+            if (value === "900000") return "Refreshes every 15 minutes";
+            if (value === "1800000") return "Refreshes every 30 minutes";
+            return "";
         }
         font.pixelSize: Theme.fontSizeSmall
         font.italic: true
@@ -76,30 +112,21 @@ PluginSettings {
         wrapMode: Text.WordWrap
     }
 
-    Rectangle {
-        width: parent.width
-        height: 1
-        color: Theme.outline
-        opacity: 0.3
-    }
-
-    // --- Binary Path ---
-
     StyledText {
         width: parent.width
-        text: "Binary Path"
-        font.pixelSize: Theme.fontSizeMedium
-        font.weight: Font.Medium
-        color: Theme.surfaceText
+        text: "Binary"
+        font.pixelSize: Theme.fontSizeSmall
+        font.weight: Font.DemiBold
+        color: Theme.surfaceVariantText
     }
 
     Column {
         width: parent.width
-        spacing: 5
+        spacing: Theme.spacingXS
 
         StyledText {
             width: parent.width
-            text: "Path to the codexbar executable. Leave empty for auto-detection (searches PATH, ~/.local/bin, /usr/local/bin)."
+            text: "Path to the codexbar executable. Leave empty to auto-detect PATH, ~/.local/bin, and /usr/local/bin."
             font.pixelSize: Theme.fontSizeSmall
             color: Theme.surfaceVariantText
             wrapMode: Text.WordWrap
@@ -109,33 +136,22 @@ PluginSettings {
             width: parent.width
             text: root.loadValue("codexbarPath", "")
             placeholderText: "/home/user/.local/bin/codexbar"
-            onEditingFinished: {
-                root.saveValue("codexbarPath", text)
-            }
+            onEditingFinished: root.saveValue("codexbarPath", text)
         }
     }
 
-    Rectangle {
-        width: parent.width
-        height: 1
-        color: Theme.outline
-        opacity: 0.3
-    }
-
-    // --- Source Mode ---
-
     StyledText {
         width: parent.width
-        text: "Source Mode"
-        font.pixelSize: Theme.fontSizeMedium
-        font.weight: Font.Medium
-        color: Theme.surfaceText
+        text: "Source mode"
+        font.pixelSize: Theme.fontSizeSmall
+        font.weight: Font.DemiBold
+        color: Theme.surfaceVariantText
     }
 
     DankDropdown {
         id: sourceDropdown
         text: "Source Mode"
-        description: "How to fetch usage data. On Linux, 'cli' and 'api' are supported."
+        description: "OAuth is the safest default. API mode requires provider API tokens."
         currentValue: root.loadValue("sourceMode", "oauth")
         options: [
             "oauth",
@@ -144,7 +160,7 @@ PluginSettings {
         ]
         dropdownWidth: 180
         onValueChanged: function(value) {
-            root.saveValue("sourceMode", value)
+            root.saveValue("sourceMode", value);
         }
     }
 
@@ -152,11 +168,11 @@ PluginSettings {
         width: parent.width
         leftPadding: Theme.spacingM
         text: {
-            var v = sourceDropdown.currentValue
-            if (v === "oauth") return "OAuth: Uses Claude/Codex OAuth tokens (recommended)"
-            if (v === "cli") return "CLI: Reads usage via PTY probe (may timeout for Claude)"
-            if (v === "api") return "API: Fetches usage via API tokens"
-            return ""
+            const value = sourceDropdown.currentValue;
+            if (value === "oauth") return "OAuth: Uses signed-in provider tokens (recommended)";
+            if (value === "cli") return "CLI: Reads usage via PTY probe (may timeout on some providers)";
+            if (value === "api") return "API: Uses provider API tokens; ChatGPT Plus alone is not enough";
+            return "";
         }
         font.pixelSize: Theme.fontSizeSmall
         font.italic: true
@@ -164,44 +180,62 @@ PluginSettings {
         wrapMode: Text.WordWrap
     }
 
-    Rectangle {
+    StyledRect {
         width: parent.width
-        height: 1
-        color: Theme.outline
-        opacity: 0.3
-    }
+        radius: Theme.cornerRadius
+        color: Theme.withAlpha(Theme.warning, 0.1)
+        border.width: 1
+        border.color: Theme.withAlpha(Theme.warning, 0.26)
+        implicitHeight: cautionText.implicitHeight + Theme.spacingM * 2
 
-    // --- Setup ---
+        StyledText {
+            id: cautionText
+            anchors.fill: parent
+            anchors.margins: Theme.spacingM
+            text: "If you only have ChatGPT Plus, keep Source Mode on OAuth or CLI."
+            color: Theme.warning
+            font.pixelSize: Theme.fontSizeSmall
+            wrapMode: Text.WordWrap
+        }
+    }
 
     StyledText {
         width: parent.width
-        text: "Setup"
-        font.pixelSize: Theme.fontSizeMedium
-        font.weight: Font.Medium
-        color: Theme.surfaceText
+        text: "Quick setup"
+        font.pixelSize: Theme.fontSizeSmall
+        font.weight: Font.DemiBold
+        color: Theme.surfaceVariantText
     }
 
-    Column {
+    StyledRect {
         width: parent.width
-        spacing: Theme.spacingXS
-        leftPadding: Theme.spacingM
-        bottomPadding: Theme.spacingL
+        radius: Theme.cornerRadius
+        color: Theme.surfaceContainerHigh
+        border.width: 1
+        border.color: Theme.withAlpha(Theme.surfaceText, 0.08)
+        implicitHeight: checklistColumn.implicitHeight + Theme.spacingM * 2
 
-        Repeater {
-            model: [
-                "1. Install CodexBar CLI from GitHub Releases or via brew install steipete/tap/codexbar",
-                "2. Test: codexbar usage --format json --source cli",
-                "3. The plugin polls the CLI at the configured interval",
-                "Note: On Linux, --source web is not supported. Use 'cli' or 'api'."
-            ]
+        Column {
+            id: checklistColumn
+            anchors.fill: parent
+            anchors.margins: Theme.spacingM
+            spacing: Theme.spacingXS
 
-            StyledText {
-                required property string modelData
-                text: modelData
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.surfaceVariantText
-                width: parent.width - Theme.spacingM
-                wrapMode: Text.WordWrap
+            Repeater {
+                model: [
+                    "1. Install CodexBar CLI (official Linux build)",
+                    "2. Test: codexbar usage --format json --provider codex --source oauth",
+                    "3. Keep this plugin enabled in DankBar widgets"
+                ]
+
+                StyledText {
+                    required property string modelData
+                    width: parent.width
+                    text: modelData
+                    color: Theme.surfaceVariantText
+                    font.pixelSize: Theme.fontSizeSmall
+                    wrapMode: Text.WordWrap
+                }
             }
         }
     }
