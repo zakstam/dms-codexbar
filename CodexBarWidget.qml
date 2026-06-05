@@ -25,6 +25,11 @@ PluginComponent {
   }
   property string codexbarPath: pluginData.codexbarPath || ""
   property string sourceMode: pluginData.sourceMode || "oauth"
+  // Extra providers fetched alongside the codex+claude "both" macro. They use
+  // their own source because some reject the codex/claude oauth flow (gemini
+  // only supports api/auto).
+  property string extraProviders: pluginData.extraProviders || "gemini"
+  property string extraSource: pluginData.extraSource || "auto"
 
   // === Derived: highest-usage provider for the bar pill ===
   readonly property var highestProvider: {
@@ -63,6 +68,11 @@ PluginComponent {
     return s.charAt(0).toUpperCase() + s.slice(1)
   }
 
+  // Single-quote a string for safe interpolation into a /bin/sh command.
+  function shellQuote(s) {
+    return "'" + String(s).replace(/'/g, "'\\''") + "'"
+  }
+
   function formatTimeUntil(iso) {
     if (!iso) return ""
     var diff = new Date(iso).getTime() - Date.now()
@@ -80,6 +90,17 @@ PluginComponent {
     if (windowMinutes <= 300) return "Session"
     if (windowMinutes <= 10080) return "Weekly"
     return Math.floor(windowMinutes / 1440) + "d"
+  }
+
+  // Label for a usage slot. Most providers expose time windows (Session/Weekly),
+  // but some report per-model quotas in primary/secondary/tertiary instead — the
+  // model name only lives in codexbar's text UI, not its JSON, so map it here.
+  function slotLabel(provider, slot, win) {
+    if (provider === "gemini")
+      return slot === "primary" ? "Pro" : slot === "secondary" ? "Flash" : "Flash Lite"
+    if (slot === "tertiary")
+      return (win && win.resetDescription) || "Tertiary"
+    return getWindowLabel(win ? win.windowMinutes : null)
   }
 
   readonly property string resolvedPath: codexbarPath && codexbarPath.length > 0 ? codexbarPath : "codexbar"
@@ -120,12 +141,23 @@ PluginComponent {
   Process {
     id: procUsage
     command: {
-      var cmd = [root.resolvedPath, "usage", "--format", "json", "--provider", "both"]
-      if (root.sourceMode && root.sourceMode !== "auto") {
-        cmd.push("--source")
-        cmd.push(root.sourceMode)
-      }
-      return cmd
+      var bin = root.shellQuote(root.resolvedPath)
+      var bothSrc = (root.sourceMode && root.sourceMode !== "auto") ? " --source " + root.shellQuote(root.sourceMode) : ""
+      var bothCmd = bin + " usage --format json --provider both" + bothSrc
+
+      // codexbar takes one provider (or the codex+claude "both" macro) per call,
+      // so each extra provider is a separate invocation merged with jq.
+      var parts = [bothCmd]
+      var extras = String(root.extraProviders).split(",").map(function(s) { return s.trim() }).filter(function(s) { return s.length > 0 })
+      var extraSrc = (root.extraSource && root.extraSource !== "auto") ? " --source " + root.shellQuote(root.extraSource) : ""
+      for (var i = 0; i < extras.length; i++)
+        parts.push(bin + " usage --format json --provider " + root.shellQuote(extras[i]) + extraSrc)
+
+      // Fall back to plain "both" when jq is missing, so behaviour never regresses.
+      var script = extras.length > 0
+        ? "if command -v jq >/dev/null 2>&1; then { " + parts.join("; ") + "; } | jq -s 'add'; else " + bothCmd + "; fi"
+        : bothCmd
+      return ["sh", "-c", script]
     }
     stdout: SplitParser {
       splitMarker: ""
@@ -377,7 +409,7 @@ PluginComponent {
                   }
                 }
 
-                // Primary (session) window
+                // Primary slot (session window, or top model tier)
                 Column {
                   width: parent.width
                   spacing: 2
@@ -390,7 +422,7 @@ PluginComponent {
                     StyledText {
                       id: primLabel
                       anchors.left: parent.left
-                      text: root.getWindowLabel(modelData.usage && modelData.usage.primary ? modelData.usage.primary.windowMinutes : null)
+                      text: root.slotLabel(modelData.provider, "primary", modelData.usage ? modelData.usage.primary : null)
                       font.pixelSize: Theme.fontSizeSmall
                       color: Theme.surfaceVariantText
                     }
@@ -424,7 +456,7 @@ PluginComponent {
                   }
                 }
 
-                // Secondary (weekly) window
+                // Secondary slot (weekly window, or second model tier)
                 Column {
                   width: parent.width
                   spacing: 2
@@ -437,7 +469,7 @@ PluginComponent {
                     StyledText {
                       id: secLabel
                       anchors.left: parent.left
-                      text: root.getWindowLabel(modelData.usage && modelData.usage.secondary ? modelData.usage.secondary.windowMinutes : null)
+                      text: root.slotLabel(modelData.provider, "secondary", modelData.usage ? modelData.usage.secondary : null)
                       font.pixelSize: Theme.fontSizeSmall
                       color: Theme.surfaceVariantText
                     }
@@ -484,10 +516,7 @@ PluginComponent {
                     StyledText {
                       id: terLabel
                       anchors.left: parent.left
-                      text: {
-                        if (!modelData.usage || !modelData.usage.tertiary) return ""
-                        return modelData.usage.tertiary.resetDescription || "Tertiary"
-                      }
+                      text: root.slotLabel(modelData.provider, "tertiary", modelData.usage ? modelData.usage.tertiary : null)
                       font.pixelSize: Theme.fontSizeSmall
                       color: Theme.surfaceVariantText
                     }
