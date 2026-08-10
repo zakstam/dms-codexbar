@@ -24,7 +24,7 @@ PluginComponent {
     return val ? parseInt(val) : 120000
   }
   property string codexbarPath: pluginData.codexbarPath || ""
-  property string sourceMode: pluginData.sourceMode || "oauth"
+  property string sourceMode: pluginData.sourceMode || "auto"
 
   // === Derived: highest-usage provider for the bar pill ===
   readonly property var highestProvider: {
@@ -120,7 +120,9 @@ PluginComponent {
   Process {
     id: procUsage
     command: {
-      var cmd = [root.resolvedPath, "usage", "--format", "json", "--provider", "both"]
+      // Query config-enabled providers instead of hardcoded "both" (codex+claude),
+      // so e.g. opencodego is included and unauthenticated providers stay excluded.
+      var cmd = [root.resolvedPath, "usage", "--format", "json"]
       if (root.sourceMode && root.sourceMode !== "auto") {
         cmd.push("--source")
         cmd.push(root.sourceMode)
@@ -136,7 +138,10 @@ PluginComponent {
     }
     onExited: code => {
       root.isLoading = false
-      if (code === 0 && root.rawJsonBuffer.length > 0) {
+      // codexbar exits non-zero when any queried provider fails, but still emits
+      // per-provider JSON on stdout. Parse whatever came back so healthy
+      // providers render instead of blanking the whole widget.
+      if (root.rawJsonBuffer.length > 0) {
         try {
           var data = JSON.parse(root.rawJsonBuffer)
           if (!Array.isArray(data)) data = [data]
@@ -147,7 +152,7 @@ PluginComponent {
         } catch (e) {
           console.warn("CodexBar: JSON parse error:", e)
           root.hasError = true
-          root.errorMessage = "Failed to parse CLI output"
+          root.errorMessage = "Failed to parse CLI output (exit " + code + ")"
         }
       } else if (code !== 0) {
         root.hasError = true
