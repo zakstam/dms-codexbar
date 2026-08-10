@@ -135,9 +135,10 @@ PluginSettings {
     DankDropdown {
         id: sourceDropdown
         text: "Source Mode"
-        description: "How to fetch usage data. On Linux, 'cli' and 'api' are supported."
-        currentValue: root.loadValue("sourceMode", "oauth")
+        description: "How to fetch usage data. 'auto' picks the best source per provider (recommended)."
+        currentValue: root.loadValue("sourceMode", "auto")
         options: [
+            "auto",
             "oauth",
             "cli",
             "api"
@@ -153,7 +154,8 @@ PluginSettings {
         leftPadding: Theme.spacingM
         text: {
             var v = sourceDropdown.currentValue
-            if (v === "oauth") return "OAuth: Uses Claude/Codex OAuth tokens (recommended)"
+            if (v === "auto") return "Auto: Per-provider best source (OAuth for Codex, local for OpenCode Go, API for key providers)"
+            if (v === "oauth") return "OAuth: Uses Claude/Codex OAuth tokens"
             if (v === "cli") return "CLI: Reads usage via PTY probe (may timeout for Claude)"
             if (v === "api") return "API: Fetches usage via API tokens"
             return ""
